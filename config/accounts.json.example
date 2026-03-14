@@ -1,0 +1,18 @@
+{
+  "accounts": [
+    {
+      "name": "primary",
+      "handle": "@your_handle",
+      "role": "general",
+      "approvalRequired": true,
+      "notes": "Main posting account. approvalRequired should stay true."
+    }
+  ],
+  "defaultAccount": "primary",
+  "approvalMode": "manual",
+  "_notes": [
+    "approvalMode: 'manual' — human must confirm before any post executes.",
+    "Duplicate this block to configure multiple accounts.",
+    "Role options: general, brand, bot — for your own routing logic."
+  ]
+}
