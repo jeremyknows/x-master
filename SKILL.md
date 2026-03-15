@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires fxtwitter API access. All X/Twitter operations route through this skill.
 metadata:
   author: x-master-contributors
-  version: 1.0.0
+  version: 1.1.0
   tags:
     - x
     - twitter
@@ -108,6 +108,28 @@ web_fetch("https://api.fxtwitter.com/{username}/status/{id}")
 
 **Never skip the approval step.** Even if you think you have permission, confirm the exact text before executing.
 
+#### Quote tweet error handling (MANDATORY)
+If `x-post.js quote` returns HTTP 403 "Quoting this post is not allowed":
+1. **Like the target post first:** `node x-post.js like <tweet_id> --account <account>`
+2. **Retry the quote tweet** — liking establishes interaction and unblocks the API
+3. Only fall back to a standalone tweet if the retry also fails
+
+Do NOT silently fall back to standalone on the first 403. Always try like → retry first.
+
+#### Thread posting with images
+When posting a thread where tweet 1 is a quote tweet and tweets 2–N have images:
+- Images go in `/tmp/` by default when downloaded during the session
+- Use `--media /path/to/image.jpg` flag on the reply command
+- Chain replies using the `id` field from each JSON response as the next `reply_to` ID
+- The `@mention` prepended by X on replies is normal — it won't affect rendering for followers
+
+#### Humanizing AI-drafted threads before posting
+For any tweet thread drafted by an AI (including Watson), run it through the humanizer skill first:
+1. Install: `git clone https://github.com/blader/humanizer.git ~/.claude/skills/humanizer`
+2. Spawn a subagent to apply the skill to the full thread text
+3. Key patterns it catches: em dashes, "groundbreaking/legendary" marketing language, overly abstract metaphors ("compounds"), passive voice
+4. Always preserve specific facts (dates, prices, names, URLs) through the humanizer pass
+
 ---
 
 ### 6. Handle mentions / replies to your account
@@ -120,10 +142,33 @@ web_fetch("https://api.fxtwitter.com/{username}/status/{id}")
 
 ---
 
-### 7. Direct X API v2 calls
-**Tool:** `xurl` skill (or your configured X API client)
-**When:** Specific API operations — follower management, analytics, batch operations, anything not covered above
-**Requires:** X OAuth configured in your environment
+### 7. Direct X API v2 calls / advanced operations
+**Tool:** `xint` CLI ([xint-rs](https://github.com/0xNyk/xint-rs)) — single Rust binary, 2.5MB, <5ms startup
+**When:** Full-text search, real-time monitoring, follower tracking, bookmarks, AI analysis, media download, filtered streams, anything not covered above
+**Requires:** `X_BEARER_TOKEN` (read ops) + `X_CLIENT_ID` + `xint auth setup` (write/OAuth ops)
+
+**Install:**
+```bash
+brew tap 0xNyk/xint && brew install xint
+# or: curl -fsSL https://raw.githubusercontent.com/0xNyk/xint-rs/main/install.sh | bash
+```
+
+**Key commands:**
+```bash
+xint search "AI agents" --since 1h --sort likes   # search with filters
+xint watch "topic" -i 5m                           # real-time monitor
+xint bookmarks                                      # read bookmarks (OAuth)
+xint analyze "What's trending in crypto?"          # Grok AI analysis
+xint report "topic" --save                         # full trend report
+xint diff @username                                 # follower tracking
+xint stream                                         # filtered stream
+xint capabilities --json                            # machine-readable manifest
+xint mcp                                            # MCP server mode
+```
+
+**Cost:** ~$0.005/tweet read, $0.01/full-archive tweet, $0.01/write action. Track with `xint costs`.
+
+**Note:** `xint bookmarks` (OAuth) can replace `bookmark-poll.js` for a simpler pipeline. Consider migrating.
 
 ---
 
@@ -144,8 +189,8 @@ Need to post/reply?
 Received a mention/reply?
   → x-engage (generates draft, awaits approval)
 
-Need raw API access?
-  → xurl or your configured X API client
+Need raw API access, monitoring, bookmarks, follower tracking, AI analysis?
+  → xint CLI (xint-rs) — single binary, covers search/watch/bookmarks/analyze/stream/MCP
 ```
 
 ---
@@ -159,7 +204,7 @@ Need raw API access?
 | Skill dependencies | README.md § Sub-Skills | What to install and when |
 | Account config template | `config/accounts.json.example` | Starting point for posting setup |
 | Posting script | `scripts/x-post.js` (if bundled) | Executes approved posts |
-| xurl skill docs | `~/.openclaw/skills/xurl/` or clawhub | Direct X API v2 access |
+| xint CLI | https://github.com/0xNyk/xint-rs | Search, watch, bookmarks, AI analysis, MCP, streams |
 | x-engage skill docs | `~/.openclaw/skills/x-engage/` or clawhub | Mention handling pipeline |
 
 ## What Was Deprecated / Removed from X Tooling
@@ -169,8 +214,9 @@ If you're migrating from older X agent setups, be aware:
 | Tool/Pattern | Status | Replacement |
 |-------------|--------|-------------|
 | Herald/Barker agent | Deprecated — purpose-built X agents are fragile | x-engage skill handles mentions |
-| x-twitter-api npm package | Deleted — third-party duplicate | xurl (first-party) |
-| x-react.js / x-poll.js | Archived — standalone reaction scripts | Covered by xurl |
+| x-twitter-api npm package | Deleted — third-party duplicate | xint CLI (xint-rs) |
+| x-react.js / x-poll.js | Archived — standalone reaction scripts | Covered by xint |
+| xurl skill | Superseded by xint-rs — faster, more capable, ships MCP server | xint CLI (xint-rs) |
 | Direct x.com web_fetch | Never worked reliably | fxtwitter (mandatory) |
 
 ---
