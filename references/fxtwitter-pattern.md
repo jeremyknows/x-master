@@ -297,6 +297,94 @@ while (retries < 3) {
 
 ---
 
+## X Articles (Long-Form Posts)
+
+X Articles are long-form posts published via X's native article editor. They look like regular tweets but contain rich structured content. Regular `tweet.text` for an article is **empty or just a t.co redirect** — the content lives in a nested `article` object.
+
+### Detecting an X Article
+
+```javascript
+const data = JSON.parse(response);
+const tweet = data.tweet;
+
+if (tweet.article) {
+  // This is an X Article — extract from article object
+} else {
+  // Regular tweet — use tweet.text
+}
+```
+
+### Extracting Full Article Content
+
+```javascript
+function extractContent(tweet) {
+  if (tweet.article) {
+    const title = tweet.article.title || '';
+    const blocks = tweet.article.content?.blocks || [];
+    // Each block has a .text field; some may be headings, paragraphs, or list items
+    const body = blocks
+      .map(b => b.text || '')
+      .filter(t => t.trim())
+      .join('\n\n');
+    return title ? `${title}\n\n${body}` : body;
+  }
+  // Regular tweet — but skip bare t.co-only text
+  const text = tweet.text || tweet.raw_text || '';
+  if (/^https:\/\/t\.co\/\S+$/.test(text.trim())) return ''; // t.co redirect only, no content
+  return text;
+}
+```
+
+### Article Response Shape
+
+```json
+{
+  "tweet": {
+    "text": "https://t.co/xxxxx",
+    "raw_text": "https://t.co/xxxxx",
+    "article": {
+      "title": "Article Title Here",
+      "preview_text": "First sentence or two...",
+      "content": {
+        "blocks": [
+          { "text": "First paragraph content..." },
+          { "text": "Second paragraph..." },
+          { "text": "## Section Heading" }
+        ]
+      }
+    }
+  }
+}
+```
+
+**Key points:**
+- `tweet.text` / `tweet.raw_text` will be **empty or a bare t.co URL** — do not use these for articles
+- `tweet.article.title` — the article's title
+- `tweet.article.preview_text` — short excerpt only (not the full body)
+- `tweet.article.content.blocks[].text` — **full body**, join with `\n\n` to reconstruct
+- `tweet.article` being present is the reliable signal — `is_note_tweet` may or may not be set
+
+### /i/status/ URLs (No Username)
+
+If the URL uses the `/i/status/{id}` format (no username captured at save time), fxtwitter handles it fine:
+
+```
+https://api.fxtwitter.com/i/status/{tweet_id}
+```
+
+fxtwitter resolves the author and returns full content including articles. No username required.
+
+### Real-World Example
+
+From our KI pipeline (March 2026) — `neural_avb/2032489770648256956`:
+- Regular `tweet.text`: `"https://t.co/abc123"` ← useless
+- `tweet.article.title`: `"OpenClaw RL, explained clearly"`
+- `tweet.article.content.blocks`: full 50K+ char article on RL architecture
+
+All recovered successfully via fxtwitter + block flattening.
+
+---
+
 ## When NOT to Use fxtwitter
 
 - **DMs:** fxtwitter doesn't fetch DM content
