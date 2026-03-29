@@ -2,6 +2,8 @@
  * Simple file-based cache for X API results.
  * Avoids re-fetching identical queries within a TTL window.
  * Cache stored in ./data/cache/ relative to skill root.
+ *
+ * SECURITY: Cached content is untrusted external data. Re-validate on cache hit if used in agentic context.
  */
 
 "use strict";

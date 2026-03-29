@@ -95,7 +95,9 @@ async function apiGet(url) {
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`X API ${res.status}: ${body.slice(0, 200)}`);
+    // SECURITY: Strip any Authorization header echoes from error body before logging.
+    const safeBody = body.replace(/Bearer\s+[A-Za-z0-9._\-]+/gi, "Bearer [REDACTED]");
+    throw new Error(`X API ${res.status}: ${safeBody.slice(0, 200)}`);
   }
 
   return res.json();
