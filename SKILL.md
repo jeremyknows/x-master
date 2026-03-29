@@ -128,7 +128,7 @@ When posting a thread where tweet 1 is a quote tweet and tweets 2–N have image
 
 #### Humanizing AI-drafted threads before posting
 For any tweet thread drafted by an AI (including Watson), run it through the humanizer skill first:
-1. Install: `git clone https://github.com/blader/humanizer.git ~/.openclaw/skills/humanizer`
+1. Install: `Install humanizer from ClaHub or your skill catalog to your agent's skills directory`
 2. Spawn a subagent to apply the skill to the full thread text
 3. Key patterns it catches: em dashes, "groundbreaking/legendary" marketing language, overly abstract metaphors ("compounds"), passive voice
 4. Always preserve specific facts (dates, prices, names, URLs) through the humanizer pass
@@ -180,7 +180,7 @@ xint mcp                                            # MCP server mode
 - **fxtwitter 5xx errors** — Community service; no SLA. On 5xx, wait 30s and retry once. If still failing, fall back to `x-research` (bundled) or `xint` with `X_BEARER_TOKEN`. Do not attempt raw x.com fetch.
 - **Quote-tweet 403** — Quoting a protected/deleted tweet returns 403. Like the post first and retry (see Task 5). Fall back to standalone tweet only if retry also fails.
 - **OAuth split: 1.0a vs 2.0** — `x-post.js` uses OAuth 1.0a (write access). `x-research` / xint use OAuth 2.0 Bearer (read-only). Token manager handles 1.0a; `X_BEARER_TOKEN` env var handles 2.0.
-- **Humanizer path** — Humanizer skill installs to `~/.openclaw/skills/humanizer/` (not `~/.claude/`). Verify path if you see "skill not found" errors during thread humanization.
+- **Humanizer path** — Humanizer skill installs to your agent's skills directory. Verify path if you see "skill not found" errors during thread humanization.
 - **fxtwitter fallback chain** — Priority order: `fxtwitter` → `xint` (if `X_BEARER_TOKEN` present and binary installed) → `x-research` (bundled). Use in that order.
 - **Rate limits** — Twitter API v2 free tier: 500k tweets/month read; 1,500 posts/month write. Track spend; `xint costs` shows xint-specific usage (~$0.005/tweet).
 - **Algo-intel expiry** — Algorithm intelligence last verified 2026-03-13. If today > 2026-06-13, treat engagement weight specifics as provisional until refreshed.
@@ -220,7 +220,7 @@ Need raw API access, monitoring, bookmarks, follower tracking, AI analysis?
 | Account config template | `config/accounts.json.example` | Starting point for posting setup |
 | Posting script | `scripts/x-post.js` (if bundled) | Executes approved posts |
 | xint CLI | https://github.com/0xNyk/xint-rs | Search, watch, bookmarks, AI analysis, MCP, streams |
-| x-engage skill docs | `~/.openclaw/skills/x-engage/` or clawhub | Mention handling pipeline |
+| x-engage skill docs | `x-engage/` (your skills dir) | Mention handling pipeline |
 
 ## What Was Deprecated / Removed from X Tooling
 
