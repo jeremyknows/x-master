@@ -109,6 +109,8 @@ web_fetch("https://api.fxtwitter.com/{username}/status/{id}")
 
 **Never skip the approval step.** Even if you think you have permission, confirm the exact text before executing.
 
+> ⚠️ **x-post.js status: not bundled by default** — `scripts/x-post.js` is referenced below but is NOT included in this skill package. You must provide your own implementation or use `xint` CLI for posting. See Key Resources table for alternatives.
+
 #### Quote tweet error handling (MANDATORY)
 If `x-post.js quote` returns HTTP 403 "Quoting this post is not allowed":
 1. **Like the target post first:** `node x-post.js like <tweet_id> --account <account>`
@@ -126,7 +128,7 @@ When posting a thread where tweet 1 is a quote tweet and tweets 2–N have image
 
 #### Humanizing AI-drafted threads before posting
 For any tweet thread drafted by an AI (including Watson), run it through the humanizer skill first:
-1. Install: `git clone https://github.com/blader/humanizer.git ~/.claude/skills/humanizer`
+1. Install: `git clone https://github.com/blader/humanizer.git ~/.openclaw/skills/humanizer`
 2. Spawn a subagent to apply the skill to the full thread text
 3. Key patterns it catches: em dashes, "groundbreaking/legendary" marketing language, overly abstract metaphors ("compounds"), passive voice
 4. Always preserve specific facts (dates, prices, names, URLs) through the humanizer pass
@@ -170,6 +172,18 @@ xint mcp                                            # MCP server mode
 **Cost:** ~$0.005/tweet read, $0.01/full-archive tweet, $0.01/write action. Track with `xint costs`.
 
 **Note:** `xint bookmarks` (OAuth) can replace `bookmark-poll.js` for a simpler pipeline. Consider migrating.
+
+---
+
+## Gotchas
+
+- **fxtwitter 5xx errors** — Community service; no SLA. On 5xx, wait 30s and retry once. If still failing, fall back to `x-research` (bundled) or `xint` with `X_BEARER_TOKEN`. Do not attempt raw x.com fetch.
+- **Quote-tweet 403** — Quoting a protected/deleted tweet returns 403. Like the post first and retry (see Task 5). Fall back to standalone tweet only if retry also fails.
+- **OAuth split: 1.0a vs 2.0** — `x-post.js` uses OAuth 1.0a (write access). `x-research` / xint use OAuth 2.0 Bearer (read-only). Token manager handles 1.0a; `X_BEARER_TOKEN` env var handles 2.0.
+- **Humanizer path** — Humanizer skill installs to `~/.openclaw/skills/humanizer/` (not `~/.claude/`). Verify path if you see "skill not found" errors during thread humanization.
+- **fxtwitter fallback chain** — Priority order: `fxtwitter` → `xint` (if `X_BEARER_TOKEN` present and binary installed) → `x-research` (bundled). Use in that order.
+- **Rate limits** — Twitter API v2 free tier: 500k tweets/month read; 1,500 posts/month write. Track spend; `xint costs` shows xint-specific usage (~$0.005/tweet).
+- **Algo-intel expiry** — Algorithm intelligence last verified 2026-03-13. If today > 2026-06-13, treat engagement weight specifics as provisional until refreshed.
 
 ---
 
