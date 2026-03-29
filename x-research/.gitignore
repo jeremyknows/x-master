@@ -1,0 +1,6 @@
+# Cache and output dirs contain tweet data (PII) — never commit
+data/cache/
+cache/
+output/
+*.tmp
+.DS_Store
