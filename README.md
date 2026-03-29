@@ -69,10 +69,20 @@ ls $AGENT_SKILLS_DIR | grep -E "grok|x-research|last30days|x-engage|xurl"
 Create `.env` in your agent's working directory or add to your shell profile:
 
 ```bash
-# X API credentials (optional, required for direct API calls)
-export X_BEARER_TOKEN="your_x_bearer_token"
-export X_OAUTH_TOKEN="your_oauth_token"
-export X_OAUTH_SECRET="your_oauth_secret"
+# OAuth 1.0a — permanent tokens, no expiry, recommended for posting
+# Per-account: prefix with account identifier (e.g. X_AW_ for @askwatson)
+export X_CONSUMER_KEY="your_consumer_key"
+export X_CONSUMER_SECRET="your_consumer_secret"
+export X_ACCESS_TOKEN="your_access_token"
+export X_ACCESS_TOKEN_SECRET="your_access_token_secret"
+export X_BEARER_TOKEN="your_bearer_token"
+
+# OAuth 2.0 PKCE — required for bookmark.read/bookmark.write scopes only
+# Refresh token rotates on every use — always write updated token back to secrets file
+export X_OAUTH2_CLIENT_ID="your_client_id"
+export X_OAUTH2_CLIENT_SECRET="your_client_secret"
+export X_OAUTH2_REFRESH_TOKEN="your_refresh_token"  # bootstrap fallback only
+# Canonical source: ~/.openclaw/secrets/x-oauth2-<account>.json (always has latest rotated token)
 
 # For xai-grok-search (optional, uses free tier by default)
 export XAI_API_KEY="your_xai_key"
@@ -80,6 +90,20 @@ export XAI_API_KEY="your_xai_key"
 # For last30days-skill (optional)
 export SCRAPECREATORS_API_KEY="your_scrapecreators_key"
 ```
+
+**OAuth 1.0a vs OAuth 2.0:**
+| Need | Use |
+|------|-----|
+| Post tweets, replies, likes, quotes | OAuth 1.0a — permanent, no refresh needed |
+| Read/write bookmarks | OAuth 2.0 PKCE — requires refresh token rotation handling |
+| Read tweets (no auth) | fxtwitter — no credentials needed |
+
+To authorize OAuth 2.0 (first-time or re-auth):
+```bash
+export X_OAUTH2_CLIENT_ID="..." X_OAUTH2_CLIENT_SECRET="..."
+node scripts/x-oauth2-authorize.js
+```
+Saves tokens to `data/x-oauth2-token-cache.json`. Add `X_OAUTH2_REFRESH_TOKEN` to your plist/env after first run.
 
 ### 3. Configure Your Accounts (Posting Only)
 

@@ -68,7 +68,7 @@ web_fetch("https://api.fxtwitter.com/{username}/status/{id}")
 ```
 **Response includes:** full text, author, engagement stats, media URLs, thread context via `reply_to`
 
-**If fxtwitter is unavailable** (5xx errors or timeout): fall back to `x-research-skill` for tweet content retrieval.
+**If fxtwitter is unavailable** (5xx errors or timeout): fall back to `x-research` (`node x-research/x-search.js tweet <id>`) for tweet content retrieval.
 
 ---
 
@@ -83,9 +83,10 @@ web_fetch("https://api.fxtwitter.com/{username}/status/{id}")
 ---
 
 ### 3. Deep X research — threads, profiles, discourse
-**Tool:** `x-research-skill`
+**Tool:** `x-research` (bundled at `x-master/x-research/`)
 **When:** Need to research a topic across many tweets, follow a conversation, understand discourse depth, or cache results
-**Supports:** Filtering by handle, sorting by engagement, saving results for reuse
+**How:** Read `x-research/SKILL.md` then run `node x-research/x-search.js`
+**Supports:** Filtering by handle, sorting by engagement, `--quick` mode, saving results to `./output/`
 
 ---
 
@@ -180,7 +181,7 @@ Got an x.com URL?
 
 Need to search X for discourse?
   → Real-time pulse: xai-grok-search
-  → Deep thread context: x-research-skill
+  → Deep thread context: x-research (bundled)
   → Last 30 days across platforms: last30days-skill
 
 Need to post/reply?
