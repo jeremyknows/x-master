@@ -159,13 +159,15 @@ brew tap 0xNyk/xint && brew install xint
 **Key commands:**
 ```bash
 xint search "AI agents" --since 1h --sort likes   # search with filters
+xint search "conversation_id:<tweet_id> is:reply" --json --sort recent --pages 5 --limit 500  # read replies to a known tweet
+xint thread <tweet_id> --pages 5                   # convenience thread/conversation fetch
 xint watch "topic" -i 5m                           # real-time monitor
 xint bookmarks                                      # read bookmarks (OAuth)
 xint analyze "What's trending in crypto?"          # Grok AI analysis
 xint report "topic" --save                         # full trend report
 xint diff @username                                 # follower tracking
 xint stream                                         # filtered stream
-xint capabilities --json                            # machine-readable manifest
+xint capabilities                                   # machine-readable manifest; some builds reject --json even though output is JSON
 xint mcp                                            # MCP server mode
 ```
 
@@ -182,6 +184,11 @@ xint mcp                                            # MCP server mode
 - **OAuth split: 1.0a vs 2.0** — `x-post.js` uses OAuth 1.0a (write access). `x-research` / xint use OAuth 2.0 Bearer (read-only). Token manager handles 1.0a; `X_BEARER_TOKEN` env var handles 2.0.
 - **Humanizer path** — Humanizer skill installs to your agent's skills directory. Verify path if you see "skill not found" errors during thread humanization.
 - **fxtwitter fallback chain** — Priority order: `fxtwitter` → `xint` (if `X_BEARER_TOKEN` present and binary installed) → `x-research` (bundled). Use in that order.
+- **xint capabilities flag drift** — Some xint builds advertise `xint capabilities --json`, but reject `--json`; plain `xint capabilities` may still emit the JSON manifest. Retry without `--json` before treating capability discovery as broken.
+- **Reply intake is conversation search** — For a known tweet's replies, use read-only X API v2 search via `xint search "conversation_id:<tweet_id> is:reply" --json --sort recent --pages 5 --limit 500`; use `--full --confirm` only when the giveaway is outside recent-search coverage. See `references/xint-reply-intake.md`.
+- **xint budget reset dry-run mutates (2026.3.16)** — `xint costs reset --dry-run` has been observed to actually reset today's local cost ledger. Treat it as a real local budget reset, not a preview. Capture `xint costs budget`/`today` before running it and only use when local reset is explicitly authorized.
+- **xint search `--limit` caps output, not API page billing** — a `--pages 1 --limit 1` recent search can still record ~99 tweets read / ~$0.495. Use it for display/export minimization, but budget for one full recent-search page unless xint changes behavior.
+- **Live reply smokes need sample-shape honesty** — For giveaway/reply-intake pilots, call one-page recent-search output a `recent API sample`, not full conversation coverage; preserve raw output plus a pure JSON payload if you wrapped stdout with command/timestamp lines; validate normalized JSONL + candidate/reject splits + CSV counts before reporting; and keep recommendation labels as internal human-review guidance unless a separate execution authorization exists. See `references/xint-live-reply-smoke.md`.
 - **Rate limits** — Twitter API v2 free tier: 500k tweets/month read; 1,500 posts/month write. Track spend; `xint costs` shows xint-specific usage (~$0.005/tweet).
 - **Algo-intel expiry** — Algorithm intelligence last verified 2026-03-13. If today > 2026-06-13, treat engagement weight specifics as provisional until refreshed.
 
@@ -220,6 +227,8 @@ Need raw API access, monitoring, bookmarks, follower tracking, AI analysis?
 | Account config template | `config/accounts.json.example` | Starting point for posting setup |
 | Posting script | `scripts/x-post.js` (if bundled) | Executes approved posts |
 | xint CLI | https://github.com/0xNyk/xint-rs | Search, watch, bookmarks, AI analysis, MCP, streams |
+| xint reply intake | `references/xint-reply-intake.md` | Read-only recipe for fetching replies/metadata to a known tweet with conversation search |
+| xint live reply smoke | `references/xint-live-reply-smoke.md` | End-to-end read-only reply sample workflow: root tweet verification, xint cost preflight/reset caveat, capped recent API sample artifacts, wallet CSV, Dispatch completion receipts |
 | x-engage skill docs | `x-engage/` (your skills dir) | Mention handling pipeline |
 
 ## What Was Deprecated / Removed from X Tooling
