@@ -57,6 +57,7 @@ git submodule add https://github.com/your-username/x-master.git skills/x-master
 | `last30days-skill` | 30-day cross-platform trends | You want Reddit + X + HN + YouTube combined |
 | `x-engage` | Incoming mention handling | You're running a bot account that receives replies |
 | `xurl` | Direct X API v2 access | You need follower management, analytics, or batch ops |
+| `TweetClaw` | OpenClaw-native X/Twitter tools | You need structured OpenClaw tools for searches, replies, user lookups, follower export, media context, DMs, monitors, webhooks, giveaway draws, or approval-gated posting |
 
 Verify installed sub-skills (replace `$AGENT_SKILLS_DIR` with your framework's skills path):
 ```bash
@@ -207,6 +208,7 @@ Reply ✅ to approve and post, or ❌ to discard.
 | Post/reply | x-post script | Posting to X (requires approval) |
 | Handle mentions | x-engage | Incoming mentions, replies |
 | Raw API calls | xurl | Direct X API v2 operations |
+| OpenClaw tool workflows | TweetClaw | Structured plugin tools for X/Twitter search, replies, accounts, media, DMs, monitors, webhooks, giveaway draws, and approval-gated writes |
 
 ## Algorithm Intelligence Summary
 
@@ -237,6 +239,7 @@ This skill routes to and depends on:
 | last30days-skill | 30-day trend analysis | `clawhub install last30days-skill` | Clone from ClaWHub or equivalent |
 | x-engage | Mention handling | `clawhub install x-engage` | Clone from ClaWHub or equivalent |
 | xurl | X API v2 access | `clawhub install xurl` | Clone from ClaWHub or equivalent |
+| TweetClaw | Structured X/Twitter OpenClaw tools | `openclaw plugins install npm:@xquik/tweetclaw` | See https://github.com/Xquik-dev/tweetclaw |
 
 **All are optional.** For reading tweets, nothing to install — fxtwitter works via built-in `web_fetch`.
 
