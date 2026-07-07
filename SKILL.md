@@ -70,6 +70,36 @@ web_fetch("https://api.fxtwitter.com/{username}/status/{id}")
 
 **If fxtwitter is unavailable** (5xx errors or timeout): fall back to `x-research` (`node x-research/x-search.js tweet <id>`) for tweet content retrieval.
 
+**fxtwitter error responses:**
+
+| Response | Cause | Action |
+|----------|-------|--------|
+| `{"code": 404}` | Tweet deleted or doesn't exist | Inform user tweet not found |
+| `{"code": 401}` | Protected account | Cannot access — inform user |
+| Empty response | Network issue | Retry once, then report failure |
+| No `.article` field | Not an X Article | Use `.tweet.text` for a regular tweet |
+| 5xx | Service down | See the 5xx fallback chain above and in Gotchas |
+
+**X Articles (long-form posts):** check the `.tweet.article` field. If present, extract content
+from `.tweet.article.content.blocks[] | select(.text) | .text` and summarize from that, not the
+root tweet text — X Article posts commonly have a root `.tweet.text` that is only a `t.co` link,
+so an empty/short root tweet is not the whole content until `tweet.article.content.blocks` is
+inspected.
+
+**Fetching/saving many X links at once:** if a user provides several X URLs and explicitly asks to
+fetch/read/save all of them, use the batch pattern at `references/batch-x-resource-fetch.md`
+(stable resource folder, raw JSON preserved per link, a `fetch-records.json` manifest, and
+category-coverage checks so no link is silently skipped).
+
+**When NOT to fetch:**
+- User shared the link without asking about content and it has no operational/safety implication
+- Link is in quoted/referenced context (not a direct ask)
+- Multiple links present — ask which one to fetch
+
+**Exception:** if the user shares an X link as an operational warning (security advisory, outage,
+dependency compromise, active incident) and the answer depends on the warning's content, fetch the
+linked post with minimal disclosure so you can ground the safety posture.
+
 ---
 
 ### 2. Search X for real-time opinions or discourse
@@ -145,9 +175,67 @@ For any tweet thread drafted by an AI (including Watson), run it through the hum
 
 ---
 
-### 7. Direct X API v2 calls / advanced operations
+### 7. Official X MCP / Docs MCP (hosted MCP servers)
+**Tool:** X-hosted MCP servers documented at `https://docs.x.com/tools/mcp`.
+**When:** Connecting MCP-compatible agents/IDEs to X API capabilities or X developer docs.
+
+Two hosted servers exist:
+- **X MCP:** `https://api.x.com/mcp` — X API tools: post lookup, search/full archive, user lookup/timeline/mentions, bookmarks/folders, news/trends, Articles drafts/publish.
+- **Docs MCP:** `https://docs.x.com/mcp` — docs tools: `search_x`, `query_docs_filesystem_x`, `submit_feedback`.
+
+Authentication modes:
+- **App-only Bearer:** direct remote HTTP with `headers.Authorization = "Bearer ..."`; read-only/no user context.
+- **Full user context:** stdio bridge via `xurl mcp`; requires an X Developer app with OAuth 2.0 enabled, `CLIENT_ID`, `CLIENT_SECRET`, and registered redirect URI `http://localhost:8080/callback` unless `REDIRECT_URI` is overridden. First run may open browser; headless machines should pre-auth with `xurl auth oauth2 --headless`.
+
+Generic stdio config:
+```json
+{
+  "mcpServers": {
+    "xapi": {
+      "command": "npx",
+      "args": ["-y", "@xdevplatform/xurl", "mcp", "https://api.x.com/mcp"],
+      "env": {
+        "CLIENT_ID": "YOUR_X_APP_CLIENT_ID",
+        "CLIENT_SECRET": "YOUR_X_APP_CLIENT_SECRET"
+      }
+    },
+    "x-docs": {
+      "url": "https://docs.x.com/mcp"
+    }
+  }
+}
+```
+
+Hermes config shape:
+```yaml
+mcp_servers:
+  xapi:
+    command: "npx"
+    args: ["-y", "@xdevplatform/xurl", "mcp", "https://api.x.com/mcp"]
+    env:
+      CLIENT_ID: "..."
+      CLIENT_SECRET: "..."
+    connect_timeout: 300
+  x_docs:
+    url: "https://docs.x.com/mcp"
+```
+
+Gotchas:
+- `api.x.com/mcp` does not advertise native MCP OAuth discovery; use `xurl mcp` for OAuth/user-context flows.
+- X full-archive search (`search_posts_all` / `/2/tweets/search/all`) rejects OAuth 2.0 user-context auth with 403 `Unsupported Authentication`; it requires OAuth 2.0 application-only bearer auth. If the `xurl mcp` bridge connects but full-archive calls fail, use app-only bearer direct HTTP / app-only remote MCP, or `xint search --full --confirm` with `X_BEARER_TOKEN`.
+- Existing Atlas/xint credentials may already be present in `~/.xint/.env`; check `xint auth status` and reuse `X_CLIENT_ID` / `X_CLIENT_SECRET` before asking Jeremy for new app credentials.
+- Callback mismatch is common: X docs default to `http://localhost:8080/callback`, while the existing Atlas app may be registered for `http://127.0.0.1:3333/callback`. If the user sees a callback error, set `xurl auth apps redirect-uri set <app> http://127.0.0.1:3333/callback` and restart the OAuth flow.
+- Keep stdout clean JSON-RPC: do not run bridge with verbose output in an MCP client.
+- `npx` stale/private-registry issue: add `--registry=https://registry.npmjs.org/` to args if needed.
+- Treat `~/.xurl`, `~/.xint`, and cached OAuth tokens as secrets.
+- X docs say clients need a startup timeout ≥300s for first-run browser auth; Hermes uses `connect_timeout`.
+- Hermes config pitfall: `hermes mcp add` may prompt and cancel in non-interactive sessions, and `hermes config set ...args '[...]'` can serialize args as a string. Verify `args` is a YAML list and run `hermes -p <profile> mcp test xapi` before claiming native MCP is wired.
+
+Session-specific detail: see `references/official-x-mcp-auth.md` for the Atlas/xint-to-xurl auth bridge, callback correction, Hermes config shape, and verification commands.
+
+### 8. Direct X API v2 calls / advanced operations
 **Tool:** `xint` CLI ([xint-rs](https://github.com/0xNyk/xint-rs)) — single Rust binary, 2.5MB, <5ms startup
-**When:** Full-text search, real-time monitoring, follower tracking, bookmarks, AI analysis, media download, filtered streams, anything not covered above
+**When:** Full-text search, real-time monitoring, follower tracking, bookmarks, AI analysis, media download, filtered streams, anything not covered above, especially when you need a non-MCP CLI workflow or existing Atlas xint cost ledger behavior.
 **Requires:** `X_BEARER_TOKEN` (read ops) + `X_CLIENT_ID` + `xint auth setup` (write/OAuth ops)
 
 **Install:**
@@ -204,7 +292,11 @@ Need to post/reply?
 Received a mention/reply?
   → x-engage (generates draft, awaits approval)
 
-Need raw API access, monitoring, bookmarks, follower tracking, AI analysis?
+Need MCP-native X API/docs access?
+  → Official X MCP (`https://api.x.com/mcp`) via `xurl mcp` bridge for OAuth/user context, or App-only Bearer direct HTTP for read-only
+  → Official Docs MCP (`https://docs.x.com/mcp`) for X API docs search/read
+
+Need raw CLI/API access, monitoring, bookmarks, follower tracking, AI analysis outside MCP?
   → xint CLI (xint-rs) — single binary, covers search/watch/bookmarks/analyze/stream/MCP
 ```
 
@@ -214,6 +306,9 @@ Need raw API access, monitoring, bookmarks, follower tracking, AI analysis?
 
 | Resource | Location | Purpose |
 |----------|----------|---------|
+| Official X MCP docs | https://docs.x.com/tools/mcp | X-hosted X API MCP + Docs MCP setup, auth modes, client configs |
+| Official X API MCP server | `https://api.x.com/mcp` | Hosted Streamable HTTP MCP server for X API tools; use `xurl mcp` bridge for OAuth user context |
+| Official X Docs MCP server | `https://docs.x.com/mcp` | Hosted docs-search MCP server (`search_x`, docs filesystem query, feedback) |
 | fxtwitter pattern | `references/fxtwitter-pattern.md` | How and why to use fxtwitter; error handling |
 | Algorithm intelligence | `references/algo-intel.md` | 2026 X ranking signals, engagement weights, strategy |
 | Skill dependencies | README.md § Sub-Skills | What to install and when |
