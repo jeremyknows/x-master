@@ -263,6 +263,13 @@ xint mcp                                            # MCP server mode
 
 ---
 
+### 8. Structured OpenClaw plugin workflows
+**Tool:** TweetClaw (`openclaw plugins install npm:@xquik/tweetclaw`)
+**When:** OpenClaw users need packaged tools for X/Twitter search, reply search, user lookup, follower export, media context, DMs, monitors, webhooks, giveaway draws, or approval-gated posting.
+**Boundary:** Keep x-master responsible for routing. Use TweetClaw only when the user is already in OpenClaw, asks for TweetClaw, or needs the plugin's structured tool surface. Keep post and reply actions inside the TweetClaw/OpenClaw approval flow.
+
+---
+
 ## Gotchas
 
 - **fxtwitter 5xx errors** — Community service; no SLA. On 5xx, wait 30s and retry once. If still failing, fall back to `x-research` (bundled) or `xint` with `X_BEARER_TOKEN`. Do not attempt raw x.com fetch.
@@ -298,6 +305,9 @@ Need MCP-native X API/docs access?
 
 Need raw CLI/API access, monitoring, bookmarks, follower tracking, AI analysis outside MCP?
   → xint CLI (xint-rs) — single binary, covers search/watch/bookmarks/analyze/stream/MCP
+
+Need OpenClaw-native structured tools for searches, replies, accounts, media, DMs, monitors, webhooks, giveaway draws, or approved posts?
+  -> TweetClaw plugin (install with npm:@xquik/tweetclaw)
 ```
 
 ---
@@ -315,6 +325,7 @@ Need raw CLI/API access, monitoring, bookmarks, follower tracking, AI analysis o
 | Account config template | `config/accounts.json.example` | Starting point for posting setup |
 | Posting script | `scripts/x-post.js` (if bundled) | Executes approved posts |
 | xint CLI | https://github.com/0xNyk/xint-rs | Search, watch, bookmarks, AI analysis, MCP, streams |
+| TweetClaw | https://github.com/Xquik-dev/tweetclaw | OpenClaw plugin tools for structured X/Twitter workflows |
 | x-engage skill docs | `x-engage/` (your skills dir) | Mention handling pipeline |
 
 ## What Was Deprecated / Removed from X Tooling
